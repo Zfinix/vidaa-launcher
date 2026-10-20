@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="docs/screenshots/home.png" width="820" alt="VIDAA launcher home screen">
-</p>
-
 <h1 align="center">vidaa-launcher</h1>
 
 <p align="center">A custom home-screen launcher for Hisense VIDAA TVs, drawn on one canvas and driven by a small Python server on your Mac.</p>
