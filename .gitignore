@@ -1,0 +1,9 @@
+server/keys/
+server/.host
+server/.paircode
+server/.pairresult
+server/apps_hidden.json
+server/.home_watch_off
+__pycache__/
+*.pyc
+.DS_Store

@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Launcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@200;400;500;600&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#000}
+  canvas{position:fixed;display:block}
+  .warm{position:absolute;left:-9999px;top:0;font-family:Geist;visibility:hidden}
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<span class="warm"><b style="font-weight:200">0</b><b style="font-weight:400">a</b><b style="font-weight:500">a</b><b style="font-weight:600">a</b></span>
+<script>
+(function(){
+'use strict';
+function log(m){ try{ new Image().src='/_log?'+encodeURIComponent(m).slice(0,1500); }catch(e){} }
+window.onerror=function(m,s,l,c){ log('ERR '+m+' @'+l+':'+c); };
+
+// ---------- constants ----------
+var W=1920, H=1080, EDGE=84, FOCUS_Y=430;
+var FONT='Geist, "Helvetica Neue", Arial, sans-serif';
+var INK='#f4f1ea', DIM='rgba(244,241,234,.55)', GREEN='#8be3ad', RED='#ff5a5a', GREY=[64,66,76];
+
+var LOGOS={
+  netflix:{vb:[24,24],fill:'#E50914',d:'m5.398 0 8.348 23.602c2.346.059 4.856.398 4.856.398L10.113 0H5.398zm8.489 0v9.172l4.715 13.33V0h-4.715zM5.398 1.5V24c1.873-.225 2.81-.312 4.715-.398V14.83L5.398 1.5z'},
+  youtube:{vb:[24,24],fill:'#FF0000',d:'M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z'},
+  plex:{vb:[24,24],fill:'#EBAF00',d:'M3.987 8.409c-.96 0-1.587.28-2.12.933v-.72H0v8.88s.038.018.127.037c.138.03.821.187 1.331-.249.441-.377.542-.814.542-1.318v-1.283c.533.573 1.147.813 2 .813 1.84 0 3.253-1.493 3.253-3.48 0-2.12-1.36-3.613-3.266-3.613Zm16.748 5.595.406.591c.391.614.894.906 1.492.908.621-.012 1.064-.562 1.226-.755 0 0-.307-.27-.686-.72-.517-.614-1.214-1.755-1.24-1.803l-1.198 1.779Zm-3.205-1.955c0-2.08-1.52-3.64-3.52-3.64s-3.467 1.587-3.467 3.573a3.48 3.48 0 0 0 3.507 3.52c1.413 0 2.626-.84 3.253-2.293h-2.04l-.093.093c-.427.4-.72.533-1.227.533-.787 0-1.373-.506-1.453-1.266h4.986c.04-.214.054-.307.054-.52Zm-7.671-.219c0 .769.11 1.701.868 2.722l.056.069c-.306.526-.742.88-1.248.88-.399 0-.814-.211-1.138-.579a2.177 2.177 0 0 1-.538-1.441V6.409H9.86l-.001 5.421Zm9.283 3.46h-2.39l2.247-3.332-2.247-3.335h2.39l2.248 3.335-2.248 3.332Zm1.593-1.286Zm-17.162-.342c-.933 0-1.68-.773-1.68-1.72s.76-1.666 1.68-1.666c.92 0 1.68.733 1.68 1.68 0 .946-.733 1.706-1.68 1.706Zm18.361-1.974L24 8.622h-2.391l-.87 1.293 1.195 1.773Zm-9.404-.466c.16-.706.72-1.133 1.493-1.133.773 0 1.373.467 1.507 1.133h-3Z'},
+  prime:{vb:[84.6,26.6],fill:'#129CF3',d:'M39.08 26.46a29.04 29.04 0 0 1-11.33-3 19.2 19.2 0 0 1-5.44-3.86c-1.26-1.27-1.89-2.1-2.01-2.68-.1-.46.08-.75.5-.75.27 0 .71.26 1.47.85 3.32 2.58 7.94 4.45 13.08 5.28a41.02 41.02 0 0 0 19.1-1.46c1.1-.37 1.8-.66 2.93-1.21.74-.37.97-.46 1.21-.47.29-.03.3-.02.46.15.23.25.22.58-.03.96-.23.35-.64.76-1.25 1.25-3.13 2.52-8.22 4.33-13.68 4.86-.98.1-4.15.14-5.01.08zm20.48-2.98c-.32-.27-.26-.57.25-1.42a11.28 11.28 0 0 0 1.4-3.31c.11-.7-.07-.93-.84-1.07-.72-.12-2.41-.03-3.48.19-.2.04-.55.07-.78.07-.4 0-.45 0-.55-.12a.7.7 0 0 1-.15-.33c-.02-.18 0-.23.15-.4a7.1 7.1 0 0 1 4.59-1.6c1.57 0 2.84.38 3.26.98.15.22.16.24.18.97.01.54 0 .87-.07 1.21a7.9 7.9 0 0 1-1.45 3.24 8.82 8.82 0 0 1-1.74 1.59c-.4.2-.55.2-.77 0zM.25 15.84a.48.48 0 0 1-.17-.09C0 15.7 0 15.35 0 9.7c0-3.29.02-6 .03-6.03.09-.13.25-.16 1.03-.16.45 0 .84.02.88.03.11.04.15.16.27.74.06.3.13.56.15.58.02.02.09-.08.16-.22.16-.3.63-.8.94-.97a2.6 2.6 0 0 1 1.71-.34c1.36.21 2.3 1.37 2.72 3.33.1.5.13 2.16.04 2.8a5.27 5.27 0 0 1-1.14 2.78c-.57.6-1.1.87-1.83.9-.53.04-.88-.02-1.28-.22a2.9 2.9 0 0 1-1.03-.97 1.1 1.1 0 0 0-.2-.26c-.02 0-.04.87-.04 1.94 0 1.08-.02 1.99-.04 2.05-.07.17-.25.2-1.18.2-.47 0-.9-.01-.94-.03zm4.1-4.82c.33-.1.64-.44.82-.86.2-.48.28-.95.31-1.7.05-1.3-.25-2.4-.75-2.83-.16-.14-.58-.3-.77-.3-.97 0-1.6 1.11-1.6 2.83 0 1.23.25 2.1.72 2.58.34.33.81.44 1.28.28zm32 2.09a4.08 4.08 0 0 1-3.18-3.16c-.57-2.26.05-4.64 1.52-5.83a3.65 3.65 0 0 1 4.67.01c.56.5.89.96 1.2 1.72.25.62.35 1.16.38 2.02.02.4.01.77 0 .83-.07.27.07.25-2.78.25-1.43 0-2.61.02-2.63.04-.05.08.12.88.25 1.23.18.47.52.83.87.93.75.21 1.47-.13 1.71-.82.17-.47.19-.5.38-.52.14-.01 1.16.2 1.78.35.26.07.29.2.12.62-.18.48-.42.87-.75 1.22a3.45 3.45 0 0 1-2.7 1.13c-.35.01-.73 0-.85-.02zm2.1-5.9c0-.45-.28-1.28-.55-1.6a1.16 1.16 0 0 0-.83-.36c-.47 0-.83.22-1.1.67-.16.29-.35.85-.4 1.2l-.03.23h2.91zM9.28 12.84l-.12-.1V8.2c0-4.18 0-4.56.07-4.61.1-.08 1.66-.12 1.85-.04.15.06.2.17.31.78.05.27.1.5.13.52.01.02.1-.1.18-.26.2-.37.65-.85.96-1a2.8 2.8 0 0 1 1.87-.18c.37.1.52.23.52.44 0 .15-.3 1.4-.43 1.81-.1.3-.16.33-.6.16a3 3 0 0 0-1.04-.26c-.67 0-1.1.35-1.3 1.1-.08.23-.09.6-.11 3.2a22.69 22.69 0 0 1-.08 2.99c-.05.04-.32.06-1.08.07-.98.01-1.02 0-1.13-.08zm6.6.04a.23.23 0 0 1-.13-.1c-.02-.05-.05-8.19-.03-9.02 0-.23.14-.26 1.26-.26 1.11 0 1.13.01 1.15.3v4.54c0 4.35 0 4.41-.09 4.5-.08.08-.14.09-1.08.09-.55 0-1.04-.02-1.09-.05zm3.92 0a.3.3 0 0 1-.15-.15c-.03-.08-.04-1.76-.04-4.58 0-3.77 0-4.46.06-4.54.06-.08.13-.09.92-.1.58-.01.9 0 .98.04.13.05.15.1.3.9l.11.42c.02.01.1-.11.19-.28.28-.56.74-.98 1.3-1.18.21-.08.37-.1.78-.1.55 0 .77.04 1.23.27a3 3 0 0 1 .98 1c.1.17.18.3.2.3.01 0 .09-.09.17-.2a3.24 3.24 0 0 1 1.59-1.28 3.03 3.03 0 0 1 1.6 0c.92.32 1.46 1 1.8 2.27.08.35.09.45.1 3.7.02 2.9 0 3.37-.05 3.45-.06.08-.12.09-1.08.1-.98.01-1.03.01-1.14-.08l-.12-.1-.02-3.02c-.01-2.98-.01-3.03-.11-3.32-.2-.6-.53-.86-1.08-.86-.56 0-.96.3-1.17.89-.15.42-.17.96-.17 3.67 0 2.59 0 2.65-.1 2.74-.08.08-.14.09-1.07.09-1 0-1.11-.02-1.2-.18a35.6 35.6 0 0 1-.05-2.9c0-2.8-.01-3.14-.16-3.6-.2-.64-1-.92-1.63-.57-.41.22-.63.68-.7 1.49-.03.23-.05 1.58-.05 3v2.58l-.1.09c-.1.08-.15.09-1.06.09-.53 0-1-.03-1.06-.05zM16.52 2.8a1.5 1.5 0 0 1-.9-.78 1.76 1.76 0 0 1 0-1.21c.13-.29.41-.57.7-.7a1.8 1.8 0 0 1 1.22 0c.32.15.64.5.75.84.1.34.07.82-.08 1.15-.14.3-.47.58-.8.68-.24.07-.7.08-.89.02zm43.91 10.3c-1.12-.21-2.06-1.34-2.44-2.92a9.49 9.49 0 0 1-.04-3.72c.31-1.43 1-2.48 1.95-2.92a2.44 2.44 0 0 1 3.19.89c.12.18.24.32.26.3.03-.01.05-.81.05-2.03 0-1.97 0-2.01.09-2.1.09-.09.13-.1 1.13-.08a4.1 4.1 0 0 1 1.1.07c.1.1.12 1.02.1 6.6l-.02 5.54-.1.1c-.08.1-.11.1-.92.1a7.2 7.2 0 0 1-.91-.03c-.12-.05-.2-.24-.3-.81a3.2 3.2 0 0 0-.13-.55l-.15.26c-.2.38-.73.89-1.15 1.1-.18.09-.44.18-.57.2-.29.06-.84.06-1.14 0zm1.96-2.12c.73-.35 1.11-1.51 1.03-3.1-.07-1.43-.5-2.27-1.25-2.48a.87.87 0 0 0-.53-.02c-.73.16-1.13.81-1.28 2.05a6.6 6.6 0 0 0 .14 2.32c.17.64.47 1.06.89 1.26.25.12.73.1 1-.03zm7.97 2.1a3.1 3.1 0 0 1-1.12-.42 4.5 4.5 0 0 1-2.07-3.24c-.1-.59-.1-1.69 0-2.27a4.87 4.87 0 0 1 1.99-3.28 4.12 4.12 0 0 1 2-.59c.38 0 1 .12 1.36.26a4.02 4.02 0 0 1 2.12 2.22c.3.71.42 1.37.43 2.3 0 .63 0 .71-.08.8-.08.1-.1.1-2.71.1h-2.63v.15c0 .27.12.81.27 1.15.17.41.38.67.68.82.32.17.83.17 1.18.02.28-.12.6-.46.7-.73l.13-.37c.05-.16.08-.18.22-.19.2-.02 1.8.33 1.95.42.15.1.11.3-.14.83a3.78 3.78 0 0 1-1.07 1.35c-.7.52-1.26.7-2.25.72-.45.01-.76 0-.96-.04zm2.19-5.78c.04-.03.04-.1-.02-.43-.15-.79-.46-1.32-.9-1.52-.65-.3-1.4.1-1.72.92-.14.4-.26.97-.2 1.03.06.06 2.74.06 2.84 0zm6.71 5.78a4.2 4.2 0 0 1-2.7-2.25 6.53 6.53 0 0 1-.5-1.63c-.27-1.9.27-3.74 1.41-4.83a3.5 3.5 0 0 1 1.86-1c2.52-.51 4.7 1.55 4.82 4.58a5.74 5.74 0 0 1-.86 3.4 4.25 4.25 0 0 1-2.18 1.67 5 5 0 0 1-1.85.06zm1.35-2.02c.41-.2.72-.7.89-1.4.08-.36.1-.55.1-1.42 0-.81-.02-1.07-.08-1.34-.23-.97-.62-1.48-1.22-1.61-.8-.16-1.42.43-1.65 1.55-.28 1.35-.11 3.03.38 3.77.14.21.46.47.66.54.2.06.73.02.92-.09zm-33.49 1.78c-.09-.1-.13-.22-.4-1.23A349.58 349.58 0 0 0 45.6 7.6l-.85-3.06c-.11-.39-.2-.74-.2-.8 0-.2.12-.23 1.25-.23.95 0 1.07.01 1.16.08.08.07.15.33.45 1.67l.62 2.81c.23 1 .5 2.24.5 2.3 0 .15.07 0 .12-.25l.74-3.35c.6-2.7.68-3.08.76-3.16.06-.06.22-.08 1.13-.09 1.14 0 1.27.01 1.3.2.01.1-.14.67-.82 3.1l-.97 3.48c-.15.57-.27.98-.62 2.2-.05.17-.12.33-.16.37-.05.06-.26.07-1.44.07-1.3 0-1.38 0-1.45-.09zm6.97 0-.12-.1.01-4.53c.01-4.27.02-4.53.1-4.6.07-.07.18-.08 1.07-.1.85 0 1.03 0 1.14.06l.14.07v4.5c0 3.24-.02 4.55-.05 4.63a.27.27 0 0 1-.15.13c-.05.02-.53.03-1.06.03-.9 0-.97 0-1.08-.1zm.7-10.05c-.4-.1-.8-.47-.92-.86-.1-.27-.1-.7 0-1 .07-.28.39-.65.66-.79s.96-.16 1.25-.04c.33.15.54.34.7.64.11.25.13.32.13.68 0 .48-.09.7-.35.98-.27.28-.55.4-.97.42-.2 0-.42 0-.5-.03z'}
+};
+var BRANDS={
+  'netflix':    {logo:'netflix', tint:[150,22,28]},
+  'youtube':    {logo:'youtube', tint:[160,26,26]},
+  'prime video':{logo:'prime',   tint:[14,92,130]},
+  'plex':       {logo:'plex',    tint:[150,96,18]}
+};
+var PHOTOS=[
+  {src:'bg/01.jpg', title:'Aoraki / Mount Cook', by:'Michal Klajban', lic:'CC BY-SA 4.0'},
+  {src:'bg/02.jpg', title:'Three Sisters, Canmore', by:'Jakub Fryš', lic:'CC BY-SA 4.0'},
+  {src:'bg/03.jpg', title:'Llyn Ogwen, Milky Way', by:'John Badham', lic:'CC BY-SA 4.0'},
+  {src:'bg/04.jpg', title:'Aurora borealis, Estonia', by:'Kristian Pikner', lic:'CC BY-SA 4.0'},
+  {src:'bg/05.jpg', title:'Lake Mystery, Canterbury', by:'Michal Klajban', lic:'CC BY-SA 4.0'},
+  {src:'bg/06.jpg', title:'Soltan salt lake, Iran', by:'Amir Pashaei', lic:'CC BY-SA 4.0'},
+  {src:'bg/07.jpg', title:'Sossusvlei, Namibia', by:'Diego Delso', lic:'CC BY-SA 4.0'},
+  {src:'bg/08.jpg', title:'Sossusvlei dunes, Namibia', by:'Diego Delso', lic:'CC BY-SA 4.0'},
+  {src:'bg/09.jpg', title:'Geirangerfjord, Norway', by:'Ximonic (Simo Räsänen)', lic:'CC BY-SA 3.0'},
+  {src:'bg/10.jpg', title:'Lago do Cuniã, Brazil', by:'RodrigoErse', lic:'CC BY-SA 4.0'},
+  {src:'bg/11.jpg', title:'Tschierva glacier, Switzerland', by:'Daniel Schwen', lic:'CC BY-SA 2.5'},
+  {src:'bg/12.jpg', title:'View from Herzogenhorn', by:'Jörg Braukmann', lic:'CC BY-SA 4.0'},
+  {src:'bg/13.jpg', title:'Westruper Heide, Haltern', by:'Dietmar Rabich', lic:'CC BY-SA 4.0'},
+  {src:'bg/14.jpg', title:'Volcán Pacaya, Guatemala', by:'Christopher Crouzet', lic:'CC BY-SA 4.0'}
+];
+var ROTATE=[{label:'Every 30 seconds',ms:30000},{label:'Every 90 seconds',ms:90000},{label:'Every 5 minutes',ms:300000},{label:'Fixed',ms:0}];
+var SETTINGS=[
+  {id:'ambient',  label:'Ambient',        hint:'Wallpaper and clock only'},
+  {id:'next',     label:'Next wallpaper', hint:'Press OK'},
+  {id:'contrast', label:'Appearance',     value:function(){ return prefs.contrast?'High contrast':'Translucent'; }},
+  {id:'clock24',  label:'Clock',          value:function(){ return prefs.clock24?'24-hour':'12-hour'; }},
+  {id:'rotate',   label:'Wallpaper',      value:function(){ return ROTATE[prefs.rotate].label; }},
+  {id:'sharp',    label:'Rendering',      value:function(){ return prefs.sharp?'Sharp':'Smooth'; }}
+];
+
+// ---------- prefs & state ----------
+function loadPref(k,d){ try{ var v=localStorage.getItem('hb.'+k); return v===null?d:JSON.parse(v); }catch(e){ return d; } }
+function savePref(k,v){ try{ localStorage.setItem('hb.'+k,JSON.stringify(v)); }catch(e){} }
+var prefs={sharp:loadPref('sharp',false), contrast:loadPref('contrast',false), clock24:loadPref('clock24',false), rotate:loadPref('rotate',1)};
+if(!(prefs.rotate>=0 && prefs.rotate<ROTATE.length)) prefs.rotate=1;
+
+var apps=['Netflix','YouTube','Prime Video','Plex','TV Browser'];
+var sources=[{id:'HDMI1',name:'HDMI1',signal:false},{id:'HDMI2',name:'HDMI2',signal:false},{id:'HDMI3',name:'HDMI3',signal:false},{id:'TV',name:'TV',signal:false}];
+var tv=null, items=[];
+var state={cursor:1, ambient:false, toast:null, toastUntil:0};
+
+// The whole launcher is one list. Headers are landmarks, not stops.
+function buildItems(){
+  var l=[{kind:'head',label:'Apps'}];
+  apps.forEach(function(a){ l.push({kind:'app', name:a, label:a}); });
+  l.push({kind:'head',label:'Inputs'});
+  sources.forEach(function(s){ l.push({kind:'input', src:s, label:pretty(s.name)}); });
+  l.push({kind:'head',label:'Display'});
+  SETTINGS.forEach(function(s){ l.push({kind:'set', set:s, label:s.label}); });
+  items=l;
+  if(items[state.cursor].kind==='head') state.cursor=nextStop(state.cursor,1);
+}
+function nextStop(i,dir){
+  var j=i+dir;
+  while(j>=0 && j<items.length && items[j].kind==='head') j+=dir;
+  return (j<0||j>=items.length)? i : j;
+}
+function pretty(name){ return String(name).replace(/^HDMI(\d)$/,'HDMI $1'); }
+function isCurrent(src){
+  if(!tv || tv.statetype==='app' || tv.statetype==='remote_launcher') return false;
+  var sid=String(tv.sourceid||'').toLowerCase().replace(/\s+/g,'');
+  return !!sid && (sid===String(src.name).toLowerCase().replace(/\s+/g,'') || sid===String(src.id).toLowerCase());
+}
+function nowOn(){ for(var i=0;i<sources.length;i++) if(isCurrent(sources[i])) return sources[i]; return null; }
+function hueOf(name){ var h=0; for(var i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))%360; return h; }
+function hslRgb(h,s,l){
+  s/=100; l/=100;
+  var c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs((h/60)%2-1)), m=l-c/2, r,gg,b;
+  if(h<60){r=c;gg=x;b=0}else if(h<120){r=x;gg=c;b=0}else if(h<180){r=0;gg=c;b=x}else if(h<240){r=0;gg=x;b=c}else if(h<300){r=x;gg=0;b=c}else{r=c;gg=0;b=x}
+  return [Math.round((r+m)*255),Math.round((gg+m)*255),Math.round((b+m)*255)];
+}
+var brandCache={};
+function brandOf(name){
+  var b=BRANDS[name.toLowerCase()]; if(b) return b;
+  if(!brandCache[name]) brandCache[name]={logo:null, hue:hueOf(name), tint:hslRgb(hueOf(name),55,34)};
+  return brandCache[name];
+}
+function tintOf(it){
+  if(it.kind==='app') return brandOf(it.name).tint;
+  if(it.kind==='input') return it.src.signal||isCurrent(it.src)?[30,110,70] : GREY;
+  return GREY;
+}
+function secondary(it){
+  if(it.kind==='input') return isCurrent(it.src)?'On now' : it.src.signal?'Signal detected' : 'No signal';
+  if(it.kind==='set') return it.set.value? it.set.value() : it.set.hint;
+  return '';
+}
+
+// ---------- canvas ----------
+var IS_TV=/VIDAA|OMI\//.test(navigator.userAgent);
+var cv=document.getElementById('c'), g=cv.getContext('2d',{alpha:false});
+var K=1, CSS_S=1, HIRES=false;
+var blurC=document.createElement('canvas'); blurC.width=640; blurC.height=360;
+var bl=blurC.getContext('2d'), bgDirty=true;
+
+function fit(){
+  var vw=window.innerWidth, vh=window.innerHeight, dpr=window.devicePixelRatio||1;
+  var s=Math.min(vw/W, vh/H), cw=Math.round(W*s), ch=Math.round(H*s);
+  cv.style.width=cw+'px'; cv.style.height=ch+'px';
+  cv.style.left=Math.round((vw-cw)/2)+'px'; cv.style.top=Math.round((vh-ch)/2)+'px';
+  var q=/[?&]rs=([\d.]+)/.exec(location.search);
+  var RS=q?parseFloat(q[1]):(IS_TV?(prefs.sharp?1:0.667):1);
+  CSS_S=s; K=s*dpr*RS;
+  var pw=Math.round(W*K), ph=Math.round(H*K);
+  if(cv.width!==pw||cv.height!==ph){ cv.width=pw; cv.height=ph; }
+  HIRES=K>1.15;
+  bgDirty=true; invalidate();
+}
+
+// ---------- wallpaper ----------
+var photo={cur:null, prev:null, curBlur:null, prevBlur:null, p:null, fadeStart:0, at:Math.floor(Math.random()*PHOTOS.length), dead:false};
+var FADE=2400;
+function photoURL(p){ return HIRES ? p.src : p.src.replace('bg/','bg/1080s/'); }
+function blurURL(p){ return p.src.replace('bg/', HIRES ? 'bg/blur/' : 'bg/blurs/'); }
+function loadImg(src,ok,fail){ var im=new Image(); im.onload=function(){ ok(im); }; im.onerror=fail; im.src=src; }
+function paintSky(c,w,h){
+  c.fillStyle='#0a0c12'; c.fillRect(0,0,w,h);
+  var a=c.createRadialGradient(w*.82,h*.08,0,w*.82,h*.08,w*.6);
+  a.addColorStop(0,'rgba(120,130,160,.22)'); a.addColorStop(.5,'rgba(60,70,100,.1)'); a.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=a; c.fillRect(0,0,w,h);
+  var b=c.createRadialGradient(w*.15,h*.98,0,w*.15,h*.98,w*.7);
+  b.addColorStop(0,'rgba(36,66,120,.5)'); b.addColorStop(1,'rgba(0,0,0,0)');
+  c.fillStyle=b; c.fillRect(0,0,w,h);
+}
+function skyCanvas(w,h){ var c=document.createElement('canvas'); c.width=w; c.height=h; paintSky(c.getContext('2d'),w,h); return c; }
+function swapPhoto(im,bi,p){
+  photo.prev=photo.cur; photo.prevBlur=photo.curBlur; photo.prevStart=photo.fadeStart; photo.prevSeed=photo.seed;
+  photo.cur=im; photo.curBlur=bi; photo.p=p;
+  photo.fadeStart=performance.now(); photo.seed=Math.random();
+  bgDirty=true; invalidate();
+}
+// Slow push-in with a drift whose direction comes from the photo's seed. Runs over about two minutes, then holds.
+function drawKB(im,start,seed,now){
+  var t=Math.min(1,(now-start)/120000), s=1+.07*t;
+  var ang=seed*Math.PI*2, px=.5+.5*Math.cos(ang)*t, py=.5+.5*Math.sin(ang)*t;
+  var w=W*s, h=H*s;
+  g.drawImage(im, -(w-W)*px, -(h-H)*py, w, h);
+}
+function showPhoto(i){
+  if(photo.dead) return;
+  var p=PHOTOS[i], im=null, bi=null, got=0;
+  function done(){
+    if(++got<2) return;
+    swapPhoto(im,bi,p);
+    var n=PHOTOS[(i+1)%PHOTOS.length];
+    new Image().src=photoURL(n); new Image().src=blurURL(n);
+  }
+  function fail(){
+    if(photo.dead) return;
+    photo.dead=true; clearInterval(rotateTimer);
+    swapPhoto(skyCanvas(W,H), skyCanvas(640,360), null);
+  }
+  loadImg(photoURL(p), function(x){ im=x; done(); }, fail);
+  loadImg(blurURL(p), function(x){ bi=x; done(); }, fail);
+}
+function nextPhoto(){ photo.at=(photo.at+1)%PHOTOS.length; showPhoto(photo.at); }
+var rotateTimer;
+function startRotation(){
+  clearInterval(rotateTimer);
+  if(!photo.dead && ROTATE[prefs.rotate].ms) rotateTimer=setInterval(nextPhoto, ROTATE[prefs.rotate].ms);
+}
+function scrim(c,w,h,a){
+  c.globalAlpha=a;
+  var l=c.createLinearGradient(0,0,w,0);
+  l.addColorStop(0,'rgba(0,0,0,.66)'); l.addColorStop(.45,'rgba(0,0,0,.3)'); l.addColorStop(.75,'rgba(0,0,0,0)');
+  c.fillStyle=l; c.fillRect(0,0,w,h);
+  var v=c.createLinearGradient(0,0,0,h);
+  v.addColorStop(0,'rgba(0,0,0,.35)'); v.addColorStop(.25,'rgba(0,0,0,0)'); v.addColorStop(.7,'rgba(0,0,0,.2)'); v.addColorStop(1,'rgba(0,0,0,.7)');
+  c.fillStyle=v; c.fillRect(0,0,w,h);
+  c.globalAlpha=1;
+}
+function ease(t){ return t<0?0:t>1?1:1-Math.pow(1-t,3); }
+function fadeT(now){ return photo.prev ? ease((now-photo.fadeStart)/FADE) : 1; }
+function drawBackground(now){
+  var t=fadeT(now);
+  if(photo.prev && t<1) drawKB(photo.prev,photo.prevStart,photo.prevSeed,now);
+  else if(!photo.cur || t<1){ g.fillStyle='#080808'; g.fillRect(0,0,W,H); }
+  if(photo.cur){ g.globalAlpha=t; drawKB(photo.cur,photo.fadeStart,photo.seed,now); g.globalAlpha=1; }
+  if(HIRES && !photo.dead) scrim(g,W,H,state.ambient?.45:1);
+}
+function buildBlur(now){
+  var t=fadeT(now);
+  bl.setTransform(1,0,0,1,0,0); bl.globalAlpha=1;
+  bl.fillStyle='#141416'; bl.fillRect(0,0,640,360);
+  if(photo.prevBlur && t<1) bl.drawImage(photo.prevBlur,0,0,640,360);
+  if(photo.curBlur){ bl.globalAlpha=t; bl.drawImage(photo.curBlur,0,0,640,360); bl.globalAlpha=1; }
+  if(HIRES && !photo.dead) scrim(bl,640,360,state.ambient?.45:1);
+  return t<1;
+}
+
+// ---------- drawing primitives ----------
+function rr(c,x,y,w,h,r){
+  r=Math.min(r,w/2,h/2);
+  c.beginPath();
+  c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.arcTo(x+w,y,x+w,y+r,r);
+  c.lineTo(x+w,y+h-r); c.arcTo(x+w,y+h,x+w-r,y+h,r);
+  c.lineTo(x+r,y+h); c.arcTo(x,y+h,x,y+h-r,r);
+  c.lineTo(x,y+r); c.arcTo(x,y,x+r,y,r);
+  c.closePath();
+}
+function font(weight,size){ g.font=weight+' '+size+'px '+FONT; }
+var glyphW={}, glyphN=0;
+function charW(ch){
+  var k=g.font+'|'+ch, v=glyphW[k];
+  if(v==null){ if(++glyphN>4000){ glyphW={}; glyphN=0; } v=glyphW[k]=g.measureText(ch).width; }
+  return v;
+}
+function tracked(text,x,y,spacing,align){
+  var w=0, i, ws=[];
+  for(i=0;i<text.length;i++){ ws.push(charW(text[i])); w+=ws[i]+(i<text.length-1?spacing:0); }
+  if(align==='right') x-=w; else if(align==='center') x-=w/2;
+  var a=g.textAlign; g.textAlign='left';
+  for(i=0;i<text.length;i++){ g.fillText(text[i],x,y); x+=ws[i]+spacing; }
+  g.textAlign=a;
+  return w;
+}
+// Offscreen layers. Anything that does not change between frames is drawn once and blitted.
+function layer(w,h){ var c=document.createElement('canvas'); c.width=Math.max(1,Math.ceil(w*K)); c.height=Math.max(1,Math.ceil(h*K)); return c; }
+function into(c,fn){ var keep=g; g=c.getContext('2d'); g.setTransform(K,0,0,K,0,0); try{ fn(); } finally{ g=keep; } }
+var sprites={}, spriteN=0, spriteK=0;
+function sprite(key,make){
+  if(spriteK!==K){ sprites={}; spriteN=0; spriteK=K; }
+  var s=sprites[key];
+  if(!s){ if(++spriteN>240){ sprites={}; spriteN=1; } s=sprites[key]=make(); }
+  return s;
+}
+function textSprite(text,weight,size,spacing,color){
+  return sprite('t|'+text+'|'+weight+'|'+size+'|'+spacing+'|'+color, function(){
+    font(weight,size); var tw=0, i;
+    for(i=0;i<text.length;i++) tw+=charW(text[i])+(i<text.length-1?spacing:0);
+    var pad=Math.ceil(size*.3), asc=Math.ceil(size*1.1), c=layer(tw+pad*2,asc+Math.ceil(size*.4));
+    into(c,function(){ font(weight,size); g.fillStyle=color; g.textBaseline='alphabetic'; tracked(text,pad,asc,spacing); });
+    return {c:c, ox:pad, oy:asc, w:c.width/K, h:c.height/K, tw:tw};
+  });
+}
+function blit(s,x,y){
+  g.drawImage(s.c, Math.round((x-s.ox)*K)/K, Math.round((y-s.oy)*K)/K, s.w, s.h);
+}
+function ellipsize(text,max){
+  if(g.measureText(text).width<=max) return text;
+  while(text.length>1 && g.measureText(text+'…').width>max) text=text.slice(0,-1);
+  return text+'…';
+}
+var paths={};
+function drawLogo(k,x,y,w,h){
+  var L=LOGOS[k], s=Math.min(w/L.vb[0],h/L.vb[1]), dw=L.vb[0]*s, dh=L.vb[1]*s;
+  if(!paths[k]) paths[k]=new Path2D(L.d);
+  g.save(); g.translate(x+(w-dw)/2,y+(h-dh)/2); g.scale(s,s);
+  g.fillStyle=L.fill; g.fill(paths[k]);
+  if(k==='youtube'){ g.fillStyle='#fff'; g.beginPath(); g.moveTo(9.545,15.568); g.lineTo(9.545,8.432); g.lineTo(15.818,12); g.closePath(); g.fill(); }
+  g.restore();
+}
+// Stroke icons on a 24 grid (Lucide-style geometry). Drawn as paths so they scale to any size.
+var ICONS={
+  hdmi:     'M4 8h16a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-3.2l-1.6 2H8.8l-1.6-2H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z M7.5 11.5h9',
+  tv:       'M4 7h16a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z M17 2l-5 5-5-5',
+  globe:    'M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20 M12 2a14.5 14.5 0 0 0 0 20a14.5 14.5 0 0 0 0-20 M2 12h20',
+  moon:     'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z',
+  images:   'M18 22H4a2 2 0 0 1-2-2V6 M22 13l-1.3-1.3a2.4 2.4 0 0 0-3.4 0L11 18 M10 8a2 2 0 1 0 4 0a2 2 0 1 0-4 0 M8 2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z',
+  contrast: 'M2 12a10 10 0 1 0 20 0a10 10 0 1 0-20 0 M12 18a6 6 0 0 0 0-12v12z',
+  clock:    'M2 12a10 10 0 1 0 20 0a10 10 0 1 0-20 0 M12 6v6l4 2',
+  image:    'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M7 9a2 2 0 1 0 4 0a2 2 0 1 0-4 0 M21 15l-3.1-3.1a2 2 0 0 0-2.8 0L6 21',
+  sparkles: 'M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z M20 3v4 M22 5h-4 M4 17v2 M5 18H3'
+};
+var SET_ICON={ambient:'moon', next:'images', contrast:'contrast', clock24:'clock', rotate:'image', sharp:'sparkles'};
+var iconPaths={};
+function icon(kind,x,y,size,color,lw){
+  if(!iconPaths[kind]) iconPaths[kind]=new Path2D(ICONS[kind]);
+  g.save(); g.translate(x,y); g.scale(size/24,size/24);
+  g.strokeStyle=color; g.lineWidth=lw||1.6; g.lineCap='round'; g.lineJoin='round';
+  g.stroke(iconPaths[kind]);
+  g.restore();
+}
+function monogram(name){
+  var w=name.replace(/[^A-Za-z0-9 ]/g,'').trim().split(/\s+/);
+  if(!w[0]) return name.slice(0,1);
+  return (w.length>1? w[0][0]+w[1][0] : w[0].slice(0,2)).toUpperCase();
+}
+
+// ---------- animation ----------
+// A(): exponential ease toward a target. S(): damped spring, for motion that should overshoot a touch.
+var anim={}, vel={}, needs=false, lastT=0, BOOT=performance.now();
+function A(id,target,rate,dt){
+  var v=anim[id]; if(v==null) v=target;
+  var nv=v+(target-v)*Math.min(1,dt*rate);
+  if(Math.abs(target-nv)<.002) nv=target;
+  anim[id]=nv; return nv!==target;
+}
+function S(id,target,k,c,dt){
+  var v=anim[id]; if(v==null){ anim[id]=target; vel[id]=0; return false; }
+  var vv=vel[id]||0;
+  vv+=(k*(target-v)-c*vv)*dt; v+=vv*dt;
+  if(Math.abs(v-target)<.002 && Math.abs(vv)<.02){ v=target; vv=0; }
+  anim[id]=v; vel[id]=vv; return v!==target;
+}
+function V(id){ return anim[id]||0; }
+function invalidate(){ if(!needs){ needs=true; requestAnimationFrame(frame); } }
+function boot(now,delay,len){ return ease((now-BOOT-delay)/len); }
+
+function frame(now){
+  needs=false;
+  var dt=lastT? Math.min(.05,(now-lastT)/1000) : 1/60; lastT=now;
+  var moving=now-BOOT<1600, i;
+  if(bgDirty){ bgDirty=buildBlur(now); moving=moving||bgDirty; }
+  moving=A('ui', state.ambient?0:1, 7, dt)||moving;
+  moving=S('cur', state.cursor, 170, 24, dt)||moving;
+  for(i=0;i<items.length;i++) moving=S('f'+i, state.cursor===i?1:0, 240, 26, dt)||moving;
+  var t=tintOf(items[state.cursor]);
+  moving=A('tr',t[0],5,dt)||moving; moving=A('tg',t[1],5,dt)||moving; moving=A('tb',t[2],5,dt)||moving;
+  moving=S('hero',1,210,19,dt)||moving;
+  moving=A('heroA',1,9,dt)||moving;
+  var showToast=now<state.toastUntil;
+  moving=A('toast', showToast?1:0, 12, dt)||moving;
+  if(showToast) moving=true;
+
+  g.setTransform(1,0,0,1,0,0); g.globalAlpha=1;
+  render(now);
+  // Wallpaper drift, the breathing mark and the ambient clock move about 1px a second, so they tick at 10fps.
+  if(moving) invalidate(); else { lastT=0; clearTimeout(idleTimer); idleTimer=setTimeout(invalidate,IDLE_MS); }
+}
+var idleTimer;
+
+// ---------- render ----------
+var hits=[], baseC=document.createElement('canvas'), baseAt=-1e9, IDLE_MS=100;
+function drawBase(now,ui){
+  if(baseC.width!==cv.width||baseC.height!==cv.height){ baseC.width=cv.width; baseC.height=cv.height; baseAt=-1e9; }
+  if(fadeT(now)<1 || (ui>0&&ui<1) || now-baseAt>=IDLE_MS){
+    into(baseC,function(){ g.globalAlpha=1; drawBackground(now); drawLegibility(ui); });
+    baseAt=now;
+  }
+  g.setTransform(1,0,0,1,0,0); g.drawImage(baseC,0,0); g.setTransform(K,0,0,K,0,0);
+}
+function render(now){
+  hits=[];
+  g.setTransform(K,0,0,K,0,0);
+  var ui=V('ui');
+  drawBase(now,ui);
+  g.textBaseline='alphabetic'; g.textAlign='left';
+  if(ui>.01){
+    drawWash(ui);
+    g.save(); g.globalAlpha=ui;
+    drawHero(now);
+    g.translate(-90*(1-ui),0);   // list slides off to the left on the way into Ambient
+    drawList(now);
+    g.restore();
+  }
+  drawClock(now);
+  drawBrand(now);
+  drawToast(now);
+}
+
+// Dark backing where type lives, independent of which wallpaper is up.
+var legL=null, legT=null;
+function drawLegibility(ui){
+  if(!legL){
+    legL=g.createLinearGradient(0,0,1180,0);
+    legL.addColorStop(0,'rgba(0,0,0,.62)'); legL.addColorStop(.55,'rgba(0,0,0,.38)'); legL.addColorStop(1,'rgba(0,0,0,0)');
+    legT=g.createRadialGradient(W,H,0,W,H,900);
+    legT.addColorStop(0,'rgba(0,0,0,.55)'); legT.addColorStop(1,'rgba(0,0,0,0)');
+  }
+  g.fillStyle='rgba(0,0,0,'+(.18+.1*ui)+')'; g.fillRect(0,0,W,H);
+  if(ui>0){ g.save(); g.globalAlpha=ui; g.fillStyle=legL; g.fillRect(0,0,1180,H); g.restore(); }
+  g.fillStyle=legT; g.fillRect(W-900,H-900,900,900);
+}
+// The focused item's colour sits behind its mark, away from the text.
+// The gradient is soft, so it is painted at quarter size and stretched; a radial fill over most of the screen is the slowest thing on the TV.
+var washKey='', washC=document.createElement('canvas');
+washC.width=345; washC.height=270;
+function drawWash(a){
+  var c='rgba('+Math.round(V('tr'))+','+Math.round(V('tg'))+','+Math.round(V('tb'))+',';
+  if(washKey!==c+a){
+    washKey=c+a;
+    var w=washC.getContext('2d'), rg=w.createRadialGradient(215,120,0,215,120,215);
+    rg.addColorStop(0,c+(.5*a)+')'); rg.addColorStop(.5,c+(.18*a)+')'); rg.addColorStop(1,c+'0)');
+    w.clearRect(0,0,345,270); w.fillStyle=rg; w.fillRect(0,0,345,270);
+  }
+  g.drawImage(washC,540,0,W-540,H);
+}
+
+function itemH(i){
+  var it=items[i]; if(it.kind==='head') return 88;
+  var f=V('f'+i); return 64+(116*f);
+}
+function drawList(now){
+  var n=items.length, tops=[], y=0, i;
+  for(i=0;i<n;i++){ tops.push(y); y+=itemH(i); }
+  var cur=V('cur'), lo=Math.max(0,Math.max(0,Math.min(n-1,Math.floor(cur)))), hi=Math.min(n-1,lo+1);
+  var shift=FOCUS_Y-(tops[lo]+(tops[hi]-tops[lo])*(cur-lo));
+  for(i=0;i<n;i++){
+    var it=items[i], top=tops[i]+shift, h=itemH(i);
+    if(top>H+60 || top+h<-60) continue;
+    // Boot cascade: each line slides in from the left, 40ms apart.
+    var b=boot(now,120+i*40,560), bx=EDGE-48*(1-b);
+    if(it.kind==='head'){
+      g.save(); g.globalAlpha*=b;
+      font(500,15); g.fillStyle='rgba(244,241,234,.55)'; g.fillText(it.label,bx+2,top+58);
+      g.restore();
+      continue;
+    }
+    var f=Math.max(0,V('f'+i)), size=38+78*f, dist=Math.abs(i-cur);
+    var alpha=(f>.02? .5+.5*Math.min(1,f) : Math.max(.3,.55-.06*dist))*b;
+    g.save(); g.globalAlpha*=alpha;
+    if(f<=.02){
+      font(400,38);
+      blit(textSprite(ellipsize(it.label,980),400,38,-0.035*38,INK),bx,top+42);
+    } else {
+      // Growing titles are one full-size raster scaled down, so glyphs are not re-rasterised at every size.
+      var wt=f>.5?500:400, k=size/116;
+      font(wt,116);
+      var big=textSprite(ellipsize(it.label,980),wt,116,-0.035*116,INK);
+      if(Math.abs(k-1)<.002) blit(big,bx,top+size+4);
+      else { g.translate(bx,top+size+4); g.scale(k,k); g.drawImage(big.c,-big.ox,-big.oy,big.w,big.h); }
+    }
+    g.restore();
+    if(f>.02){
+      var sub=secondary(it), stepper=it.kind==='set'&&!!it.set.value;
+      g.save(); g.globalAlpha*=f; g.translate(0,(1-f)*8);
+      var sy=top+size+44, sx=EDGE+2;
+      if(it.kind==='input'){
+        var on=isCurrent(it.src), live=it.src.signal;
+        g.fillStyle=on?INK:live?GREEN:'rgba(244,241,234,.4)';
+        g.beginPath(); g.arc(sx+5,sy-6,5,0,Math.PI*2); g.fill(); sx+=20;
+      }
+      if(stepper){ chevron(sx+4,sy-6,-1); sx+=22; }
+      font(400,19); g.fillStyle='rgba(244,241,234,.78)'; g.fillText(sub,sx,sy);
+      if(stepper) chevron(sx+g.measureText(sub).width+14,sy-6,1);
+      g.restore();
+    }
+    hits.push({x:0,y:top,w:1040,h:h,i:i});
+  }
+}
+function chevron(x,y,dir){
+  g.save(); g.strokeStyle='rgba(244,241,234,.6)'; g.lineWidth=1.8; g.lineCap='round'; g.lineJoin='round';
+  g.beginPath(); g.moveTo(x-4*dir,y-6); g.lineTo(x+2*dir,y); g.lineTo(x-4*dir,y+6); g.stroke();
+  g.restore();
+}
+
+// Right side: the mark of whatever is focused, large and alone.
+function drawHero(now){
+  var it=items[state.cursor], a=V('heroA')*boot(now,360,700), cx=1440, cy=500;
+  if(a<.01) return;
+  // Spring scale on focus change, a slow breath at rest, and a nudge against the direction of scroll.
+  var sc=(.86+.14*V('hero'))*(1+.012*Math.sin(now/1700)), lift=Math.max(-28,Math.min(28,-(vel.cur||0)*4));
+  var hs=heroSprite(state.cursor);
+  g.save(); g.globalAlpha*=a;
+  g.translate(cx,cy+lift); g.scale(sc,sc);
+  g.drawImage(hs,-340,-210,680,420);
+  g.restore();
+}
+function heroSprite(i){
+  var it=items[i];
+  return sprite('h|'+i+'|'+it.label, function(){
+    var c=layer(680,420);
+    into(c,function(){ g.translate(-1100,-290); heroMark(it,1440,500); });
+    return c;
+  });
+}
+function heroMark(it,cx,cy){
+  var S=300, ink='rgba(244,241,234,.92)';
+  if(it.kind==='app'){
+    var b=brandOf(it.name);
+    if(b.logo==='prime') drawLogo('prime',cx-300,cy-95,600,190);
+    else if(b.logo) drawLogo(b.logo,cx-170,cy-170,340,340);
+    else if(/browser|web/i.test(it.name)) icon('globe',cx-S/2,cy-S/2,S,ink,1.2);
+    else {
+      var R=150, mg=g.createLinearGradient(0,cy-R,0,cy+R);
+      mg.addColorStop(0,'hsl('+b.hue+',62%,60%)'); mg.addColorStop(1,'hsl('+b.hue+',58%,38%)');
+      g.beginPath(); g.arc(cx,cy,R,0,Math.PI*2); g.fillStyle=mg; g.fill();
+      font(600,104); g.fillStyle='rgba(255,255,255,.96)'; g.textAlign='center'; g.fillText(monogram(it.name),cx,cy+38); g.textAlign='left';
+    }
+  } else if(it.kind==='input'){
+    var on=isCurrent(it.src);
+    icon(/^tv$/i.test(it.src.name)?'tv':'hdmi',cx-S/2,cy-S/2,S,ink,1.2);
+  } else {
+    icon(SET_ICON[it.set.id],cx-S/2,cy-S/2,S,ink,1.2);
+  }
+}
+
+function clockParts(){
+  var d=new Date(), h=d.getHours(), m=d.getMinutes(), mer='', hs;
+  var ms=(m<10?'0':'')+m;
+  if(prefs.clock24) hs=(h<10?'0':'')+h;
+  else { mer=h>=12?'PM':'AM'; h=h%12; if(h===0) h=12; hs=''+h; }
+  return {h:hs, m:ms, mer:mer, d:d};
+}
+var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+// Bottom-right. Grows upward into the ambient clock.
+function drawClock(now){
+  var c=clockParts(), ui=V('ui'), size=68+92*(1-ui), base=H-80, weight=ui>.5?400:200;
+  var amb=1-ui, dx=Math.sin(now/23000)*-60*amb, dy=Math.cos(now/31000)*-40*amb-60*amb;
+  g.save(); g.globalAlpha*=boot(now,500,800); g.translate(dx,dy);
+  var merW=0;
+  if(c.mer){ font(500,16+6*(1-ui)); merW=g.measureText(c.mer).width+12; }
+  if(ui===0||ui===1){
+    var ts=textSprite(c.h+':'+c.m,weight,size,-0.03*size,INK);
+    blit(ts,W-EDGE-merW-ts.tw,base);
+  } else {
+    font(weight,size); g.fillStyle=INK;
+    tracked(c.h+':'+c.m,W-EDGE-merW,base,-0.03*size,'right');
+  }
+  if(c.mer){ font(500,16+6*(1-ui)); g.fillStyle=DIM; g.textAlign='right'; g.fillText(c.mer,W-EDGE,base); g.textAlign='left'; }
+  var d=c.d, top=base-size*.74;
+  font(400,17); g.fillStyle='rgba(244,241,234,.5)'; g.textAlign='right';
+  g.fillText(DAYS[d.getDay()]+', '+d.getDate()+' '+MONTHS[d.getMonth()],W-EDGE,base+32);
+  g.textAlign='left';
+  g.restore();
+}
+
+// Top-right brand mark. Drop your logo at brand/logo.png (or .svg); white on transparent, any size.
+var brand={img:null};
+function loadBrand(){
+  loadImg('brand/logo.png', function(im){ brand.img=im; invalidate(); }, function(){
+    loadImg('brand/logo.svg', function(im){ brand.img=im; invalidate(); }, function(){});
+  });
+}
+function drawBrand(now){
+  var ui=V('ui'), y=110;
+  g.save(); g.globalAlpha*=(.6+.4*(1-ui))*boot(now,700,800);
+  if(brand.img){
+    var h=30, w=h*brand.img.naturalWidth/brand.img.naturalHeight;
+    g.drawImage(brand.img,W-EDGE-w,y-h+4,w,h);
+  } else {
+    font(600,22); g.fillStyle=INK; g.textAlign='right'; g.fillText('Hisense',W-EDGE,y); g.textAlign='left';
+  }
+  g.restore();
+}
+function drawToast(now){
+  var a=V('toast'), t=state.toast; if(a<.01||!t) return;
+  font(500,15); var vw=g.measureText(t.verb).width; font(600,15); var nw=g.measureText(t.name).width;
+  var w=58+vw+nw+24, h=48, x=W/2-w/2, y=44-(1-a)*12;
+  g.save(); g.globalAlpha=a;
+  rr(g,x,y,w,h,24); g.save(); g.clip();
+  if(!prefs.contrast) g.drawImage(blurC,x/W*640,y/H*360,w/W*640,h/H*360,x,y,w,h);
+  g.fillStyle='rgba(12,12,14,'+(prefs.contrast?.92:.5)+')'; g.fillRect(x,y,w,h); g.restore();
+  g.lineWidth=1; g.strokeStyle='rgba(255,255,255,.18)'; g.stroke();
+  var cx=x+28, cy=y+24;
+  g.lineWidth=2; g.strokeStyle='rgba(255,255,255,.14)'; g.beginPath(); g.arc(cx,cy,9,0,Math.PI*2); g.stroke();
+  if(t.err){
+    g.strokeStyle=RED; g.beginPath(); g.arc(cx,cy,9,0,Math.PI*2); g.stroke();
+    g.beginPath(); g.moveTo(cx,cy-4.5); g.lineTo(cx,cy+1); g.stroke();
+    g.fillStyle=RED; g.beginPath(); g.arc(cx,cy+4.5,1.2,0,Math.PI*2); g.fill();
+  } else { var rot=now/720*Math.PI*2; g.strokeStyle=INK; g.beginPath(); g.arc(cx,cy,9,rot,rot+Math.PI*.5); g.stroke(); }
+  font(500,15); g.fillStyle=INK; g.fillText(t.verb,x+50,y+29);
+  font(600,15); g.fillStyle=INK; g.fillText(t.name,x+50+vw,y+29);
+  g.restore();
+}
+
+// ---------- behaviour ----------
+function focus(i){
+  if(i<0||i>=items.length||items[i].kind==='head') return;
+  if(i!==state.cursor){ state.cursor=i; anim.hero=0; vel.hero=0; anim.heroA=0; }
+  invalidate();
+}
+function move(dir){ focus(nextStop(state.cursor,dir)); }
+function step(dir){
+  var it=items[state.cursor]; if(it.kind!=='set'||!it.set.value) return;
+  var id=it.set.id;
+  if(id==='rotate'){ prefs.rotate=(prefs.rotate+dir+ROTATE.length)%ROTATE.length; startRotation(); }
+  else prefs[id]=!prefs[id];
+  savePref(id,prefs[id]);
+  if(id==='sharp') fit(); else invalidate();
+}
+function activate(){
+  var it=items[state.cursor];
+  if(it.kind==='app') launchApp(it.name);
+  else if(it.kind==='input') switchSource(it.src);
+  else if(it.set.id==='ambient') enterAmbient();
+  else if(it.set.id==='next'){ nextPhoto(); startRotation(); }
+  else step(1);
+}
+function enterAmbient(){ state.ambient=true; state.toastUntil=0; bgDirty=true; invalidate(); }
+function exitAmbient(){ state.ambient=false; bgDirty=true; invalidate(); }
+
+function toast(verb,name,err){ state.toast={verb:verb,name:name,err:!!err}; state.toastUntil=performance.now()+2200; invalidate(); }
+function api(path,done){
+  var x=new XMLHttpRequest();
+  x.open('GET',path,true); x.timeout=15000;
+  x.onload=function(){ var r=null; try{ r=JSON.parse(x.responseText); }catch(e){} done(r); };
+  x.onerror=x.ontimeout=function(){ done(null); };
+  x.send();
+}
+function launchApp(name){
+  toast('Opening ',name);
+  api('/api/launch?name='+encodeURIComponent(name), function(r){ if(!r||!r.ok) toast('Could not open ',name,true); });
+}
+function switchSource(src){
+  toast('Switching to ',pretty(src.name));
+  api('/api/source?id='+encodeURIComponent(src.id), function(r){ if(!r||!r.ok) toast('Could not switch to ',pretty(src.name),true); else setTimeout(loadState,1500); });
+}
+function loadState(){ api('/api/state', function(r){ if(r&&r.ok){ tv=r.data; invalidate(); } }); }
+function loadLists(){
+  loadState();
+  api('/api/apps', function(r){ if(r&&r.ok&&r.data&&r.data.length){ apps=r.data; buildItems(); invalidate(); warm(); } });
+  api('/api/sources', function(r){ if(r&&r.ok&&r.data&&r.data.length){ sources=r.data; buildItems(); invalidate(); warm(); } });
+}
+
+// ---------- input ----------
+function keyName(e){
+  var k=e.key||'';
+  var alias={Left:'ArrowLeft',Right:'ArrowRight',Up:'ArrowUp',Down:'ArrowDown',Select:'Enter',OK:'Enter',Accept:'Enter',GoBack:'Escape',Back:'Escape',BrowserBack:'Escape',Spacebar:' '};
+  if(alias[k]) return alias[k];
+  switch(e.keyCode||e.which){
+    case 37: return 'ArrowLeft'; case 38: return 'ArrowUp'; case 39: return 'ArrowRight'; case 40: return 'ArrowDown';
+    case 13: case 23: case 66: return 'Enter';
+    case 27: case 8: case 461: case 10009: return 'Escape';
+  }
+  return k;
+}
+window.addEventListener('keydown', function(e){
+  var k=keyName(e);
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Enter','Escape',' '].indexOf(k)<0) return;
+  e.preventDefault();
+  if(state.ambient){ exitAmbient(); return; }
+  if(k==='ArrowDown') move(1);
+  else if(k==='ArrowUp') move(-1);
+  else if(k==='ArrowRight') step(1);
+  else if(k==='ArrowLeft') step(-1);
+  else if(k==='Escape') focus(nextStop(0,1));
+  else if(!e.repeat) activate();
+}, true);
+document.body.setAttribute('tabindex','-1');
+document.body.focus();
+
+function toStage(e){ var b=cv.getBoundingClientRect(); return {x:(e.clientX-b.left)/CSS_S, y:(e.clientY-b.top)/CSS_S}; }
+function findHit(p){
+  for(var i=hits.length-1;i>=0;i--){ var h=hits[i]; if(p.x>=h.x&&p.x<=h.x+h.w&&p.y>=h.y&&p.y<=h.y+h.h) return h; }
+  return null;
+}
+cv.addEventListener('mousemove', function(e){
+  if(state.ambient) return;
+  var h=findHit(toStage(e));
+  if(h && h.i!==state.cursor) focus(h.i);
+  cv.style.cursor=h?'pointer':'default';
+});
+cv.addEventListener('click', function(e){
+  document.body.focus();
+  if(state.ambient){ exitAmbient(); return; }
+  var h=findHit(toStage(e));
+  if(h){ focus(h.i); activate(); }
+});
+cv.addEventListener('wheel', function(e){ if(!state.ambient){ e.preventDefault(); move(e.deltaY>0?1:-1); } }, {passive:false});
+window.addEventListener('resize', fit);
+window.addEventListener('orientationchange', function(){ setTimeout(fit,60); });
+
+var lastMinute=-1;
+setInterval(function(){ var m=new Date().getMinutes(); if(m!==lastMinute){ lastMinute=m; invalidate(); } },5000);
+function fontsChanged(){ sprites={}; spriteN=0; glyphW={}; glyphN=0; invalidate(); warm(); }
+// Draw every row's title and mark ahead of time, one item per idle slot, so the first visit doesn't stall.
+var warmTimer, warmAt=0;
+function warm(){ clearTimeout(warmTimer); warmAt=0; warmTimer=setTimeout(warmNext,1800); }
+function warmNext(){
+  while(warmAt<items.length && items[warmAt].kind==='head') warmAt++;
+  if(warmAt>=items.length) return;
+  var it=items[warmAt], label;
+  font(400,38); textSprite(ellipsize(it.label,980),400,38,-0.035*38,INK);
+  font(400,116); label=ellipsize(it.label,980); textSprite(label,400,116,-0.035*116,INK);
+  font(500,116); label=ellipsize(it.label,980); textSprite(label,500,116,-0.035*116,INK);
+  heroSprite(warmAt);
+  warmAt++; warmTimer=setTimeout(warmNext,60);
+}
+if(document.fonts){
+  if(document.fonts.ready) document.fonts.ready.then(fontsChanged, function(){});
+  document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', fontsChanged);
+}
+
+// ---------- boot ----------
+buildItems();
+var t0=tintOf(items[state.cursor]); anim.tr=t0[0]; anim.tg=t0[1]; anim.tb=t0[2];
+anim.ui=0; anim.cur=state.cursor; anim.hero=1;
+fit();
+loadLists();
+setInterval(loadLists, 60000);
+showPhoto(photo.at);
+startRotation();
+loadBrand();
+invalidate();
+})();
+</script>
+</body>
+</html>
