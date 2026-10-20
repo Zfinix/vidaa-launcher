@@ -25,27 +25,20 @@ Pair with [hisensebar](https://github.com/Zfinix/hisensebar), the menu bar remot
 
 ```mermaid
 flowchart LR
-    subgraph TV["TV browser · Chrome 77"]
-        L["launcher-canvas.html<br/>single canvas · remote keys → keydown"]
-    end
-    subgraph Mac
-        S["tvsite_server.py :8765<br/>serves launcher/ + /api/*"]
-        R["backend_rpc.py<br/>shared TV connection"]
-    end
-    H["Hisense VIDAA TV"]
-    L <-->|"HTTP /api/apps · /api/launch · /api/sources"| S
-    S -->|"JSON commands"| R
-    R <-->|"TLS MQTT :36669<br/>cert + key pair"| H
+    A["TV browser<br/>launcher-canvas.html"] -->|HTTP API| B["Mac server<br/>tvsite_server.py :8765"]
+    B -->|JSON| C["Mac bridge<br/>backend_rpc.py"]
+    C -->|TLS MQTT 36669| D["Hisense VIDAA TV"]
+    D -->|remote key events| A
 ```
 
 ## Install
 
 ```mermaid
 flowchart TD
-    A[Get the cert + key] --> B[Pair with the TV]
-    B --> C[Start the server]
-    C --> D[Install via hisense://debug]
-    D --> E[Optional: make it the home screen]
+    A["Get the cert + key"] --> B["Pair with the TV"]
+    B --> C["Start the server"]
+    C --> D["Install via hisense://debug"]
+    D --> E["Optional: make it the home screen"]
 ```
 
 ### 1. Get the certificate and key
@@ -169,10 +162,10 @@ The launcher is a plain web app, so it runs on any Android TV browser too. To ma
 
 ```mermaid
 flowchart TD
-    A[Connect TV to same Wi-Fi] --> B[Tap Build 7x to unlock Developer options]
-    B --> C[Enable USB debugging + ADB over network]
-    C --> D[Get the TV's IP]
-    D --> E[Wrap the page in an Android TV launcher app]
+    A["Connect TV to same Wi-Fi"] --> B["Tap Build 7x"]
+    B --> C["Enable USB + ADB network debugging"]
+    C --> D["Get the TV's IP"]
+    D --> E["Wrap page in an Android TV launcher"]
     E --> F["adb install + set default home"]
 ```
 
