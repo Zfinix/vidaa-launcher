@@ -1,46 +1,56 @@
-# vidaa-launcher
+<p align="center">
+  <img src="docs/screenshots/home.png" width="820" alt="VIDAA launcher home screen">
+</p>
 
-A custom home-screen launcher for Hisense VIDAA TVs. It runs as a web app installed through the TV's built-in debug installer, draws everything on a single `<canvas>` (the TV's old Chrome 77 GPU chokes on layered CSS), and talks to a small Python server on your Mac that controls the TV over its own MQTT channel.
+<h1 align="center">vidaa-launcher</h1>
+
+<p align="center">A custom home-screen launcher for Hisense VIDAA TVs, drawn on one canvas and driven by a small Python server on your Mac.</p>
+
+The TV's old Chrome 77 GPU chokes on layered CSS, so the whole interface is drawn on a single `<canvas>`. The launcher is a plain web page installed through the TV's built-in debug installer, and it talks to a server that controls the TV over the same RemoteNow MQTT channel other open source Hisense projects use.
 
 Pair with [hisensebar](https://github.com/Zfinix/hisensebar), the menu bar remote, for the full setup.
 
-## What you get
+## Demo
 
-- Home screen with a large clock, rotating 4K wallpapers, a row of your apps and inputs
-- Apps and Inputs pages with real app logos and live signal status
-- Pressing OK on a tile actually opens the app or switches the input on the TV
-- Floating nav (Home / Apps / Inputs), ambient mode, settings (appearance, clock, wallpaper, rendering)
-- Optional home takeover: when the TV lands on VIDAA's home screen, a watcher opens this launcher instead
-- Runs at 30 to 35 fps on the TV after rendering to 720p and scaling up
+<p align="center">
+  <img src="docs/screenshots/demo.gif" width="760" alt="Launcher demo">
+</p>
+
+## Features
+
+- **Home screen** with a large clock, rotating 4K wallpapers and a row of your apps and inputs
+- **Apps and Inputs pages** with real app logos and live signal status
+- **Real controls.** Pressing OK on a tile opens the app or switches the input on the TV
+- **Floating nav** (Home / Apps / Inputs), ambient mode, settings for appearance, clock, wallpaper and rendering
+- **Home takeover.** A watcher opens this launcher whenever the TV lands on VIDAA's home screen
+- **Runs at 30 to 35 fps** on the TV after rendering to 720p and scaling up
 
 ## How it works
 
+```mermaid
+flowchart LR
+    subgraph TV["TV browser · Chrome 77"]
+        L["launcher-canvas.html<br/>single canvas · remote keys → keydown"]
+    end
+    subgraph Mac
+        S["tvsite_server.py :8765<br/>serves launcher/ + /api/*"]
+        R["backend_rpc.py<br/>shared TV connection"]
+    end
+    H["Hisense VIDAA TV"]
+    L <-->|"HTTP /api/apps · /api/launch · /api/sources"| S
+    S -->|"JSON commands"| R
+    R <-->|"TLS MQTT :36669<br/>cert + key pair"| H
 ```
-TV browser (Chrome 77)                Mac
-┌───────────────────────┐   HTTP    ┌──────────────────────────┐
-│ launcher-canvas.html  │ ────────▶ │ tvsite_server.py :8765   │
-│ single canvas, JS     │ ◀──────── │ serves launcher/ + APIs  │
-│ remote keys → keydown │           │   │ /api/apps            │
-└───────────────────────┘           │   │ /api/launch          │
-                                    │   │ /api/sources         │
-                                    │   └──────────┬───────────┘
-                                    │              │ backend_rpc.py
-                                    │              ▼
-                                    │        TLS MQTT :36669
-                                    └─────────▶ Hisense TV
-                                                (cert + key pair)
-```
-
-The TV control layer is the same RemoteNow channel used by other open source Hisense projects: TLS MQTT on port 36669 with a client certificate.
-
-## Requirements
-
-- A Hisense VIDAA TV on the same network
-- A Mac (or anything always-on) to run the server
-- Python 3 with `paho-mqtt` v2: `pip install paho-mqtt`
-- The RemoteNow client certificate and key (not in this repo)
 
 ## Install
+
+```mermaid
+flowchart TD
+    A[Get the cert + key] --> B[Pair with the TV]
+    B --> C[Start the server]
+    C --> D[Install via hisense://debug]
+    D --> E[Optional: make it the home screen]
+```
 
 ### 1. Get the certificate and key
 
@@ -76,14 +86,14 @@ HISENSE_HOST=192.168.1.50 python3 server/tvsite_server.py launcher 8765
 ### 4. Install it on the TV
 
 1. On the TV, open the **TV Browser** and type `hisense://debug` in the address bar.
-2. In the panel, enter the app name (`HisenseBar`) and the URL `http://<your-mac-ip>:8765/`, then hit **Install**.
+2. Enter the app name (`HisenseBar`) and the URL `http://<your-mac-ip>:8765/`, then hit **Install**.
 3. The launcher is added as a channel. Open it from the TV's app list.
 
-VIDAA has no setting to replace its home screen, so this is the supported way: your app shows up as a normal channel.
+VIDAA has no setting to replace its home screen, so your app shows up as a normal channel.
 
 ### 5. Optional: make it the home screen
 
-`server/home_watch.py` checks the TV every 3 seconds and, whenever the TV is on VIDAA's home screen, opens the launcher app. Run it alongside the server:
+`server/home_watch.py` checks the TV every 3 seconds and opens the launcher app whenever the TV is on VIDAA's home screen:
 
 ```sh
 python3 server/home_watch.py
@@ -133,6 +143,13 @@ Watcher (`com.example.vidaa-launcher-home.plist`): same shape, with
 </array>
 ```
 
+## Requirements
+
+- A Hisense VIDAA TV on the same network
+- A Mac (or anything always-on) to run the server
+- Python 3 with `paho-mqtt` v2: `pip install paho-mqtt`
+- The RemoteNow client certificate and key (not in this repo)
+
 ## The launcher
 
 `launcher/launcher-canvas.html` is the built page; `launcher-canvas.src.html` is identical (the source is self-contained). It draws at 1920x1080:
@@ -154,11 +171,14 @@ App logos in `launcher/icons/` are official App Store icons. Wallpaper credits a
 
 The launcher is a plain web app, so it runs on any Android TV browser too. To make it a real launcher on Android TV (Xiaomi PatchWall, Google TV):
 
-1. Turn on the TV, connect it to the same Wi-Fi as the Mac.
-2. Settings > Device Preferences > About, tap **Build** 7 times to unlock Developer options.
-3. In Developer options, turn on **USB debugging** and **ADB over network**.
-4. Get the TV's IP from Settings > Network.
-5. Wrap the page in a small Android TV launcher app (or sideload the page as a kiosk app), install with `adb install`, then set it as the default home app from Settings.
+```mermaid
+flowchart TD
+    A[Connect TV to same Wi-Fi] --> B[Tap Build 7x to unlock Developer options]
+    B --> C[Enable USB debugging + ADB over network]
+    C --> D[Get the TV's IP]
+    D --> E[Wrap the page in an Android TV launcher app]
+    E --> F["adb install + set default home"]
+```
 
 The Hisense button controls (app open, input switch) go through the Mac server and the Hisense MQTT channel, so on a Xiaomi those actions would need an Android equivalent (`adb shell am start`, `input keyevent` for HDMI CEC).
 
